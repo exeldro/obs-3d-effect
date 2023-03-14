@@ -215,11 +215,10 @@ void effect_3d_video_render(void *data, gs_effect_t *eff)
 	gs_matrix_push();
 	gs_blend_state_push();
 	gs_blend_function(GS_BLEND_ONE, GS_BLEND_ZERO);
-	float w = (float)base_width;
-	float h = (float)base_height;
 	if (gs_texrender_begin_with_color_space(context->render, base_width,
 						base_height, space)) {
-
+		const float w = (float)base_width;
+		const float h = (float)base_height;
 		struct vec4 clear_color;
 
 		vec4_zero(&clear_color);
