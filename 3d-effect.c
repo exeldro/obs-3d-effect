@@ -56,6 +56,7 @@ static void effect_3d_destroy(void *data)
 
 static obs_properties_t *effect_3d_properties(void *data)
 {
+	UNUSED_PARAMETER(data);
 	obs_properties_t *ppts = obs_properties_create();
 
 	obs_property_t *p = obs_properties_add_float_slider(
@@ -94,21 +95,20 @@ static obs_properties_t *effect_3d_properties(void *data)
 
 	obs_properties_t *scale = obs_properties_create();
 
-	p = obs_properties_add_float(scale, "scale_x", obs_module_text("ScaleX"),
-				     0.0, 10000.0, 1.0f);
+	p = obs_properties_add_float(scale, "scale_x",
+				     obs_module_text("ScaleX"), 0.0, 10000.0,
+				     1.0f);
 	obs_property_float_set_suffix(p, "%");
-	p = obs_properties_add_float(scale, "scale_y", obs_module_text("ScaleY"),
-				     0.0, 10000.0, 1.0f);
+	p = obs_properties_add_float(scale, "scale_y",
+				     obs_module_text("ScaleY"), 0.0, 10000.0,
+				     1.0f);
 	obs_property_float_set_suffix(p, "%");
 
 	obs_properties_add_group(ppts, "scale", obs_module_text("Scale"),
 				 OBS_GROUP_NORMAL, scale);
 
-
 	return ppts;
 }
-
-static void draw_frame(struct effect_3d *context) {}
 
 static const char *
 get_tech_name_and_multiplier(enum gs_color_space current_space,
@@ -229,9 +229,9 @@ void effect_3d_video_render(void *data, gs_effect_t *eff)
 		gs_matrix_translate3f(0.0f, 0.0f, -1.0f);
 		gs_matrix_scale3f(w / h, 1.0f, 1.0f);
 		gs_matrix_scale3f(context->scale.x, context->scale.y, 1.0f);
-		gs_matrix_translate3f(context->position.x/w*2.0f,
-				      context->position.y/h*2.0f,
-				      context->position.z/(w+h));
+		gs_matrix_translate3f(context->position.x / w * 2.0f,
+				      context->position.y / h * 2.0f,
+				      context->position.z / (w + h));
 		gs_matrix_scale3f(h / w, 1.0f, 1.0f);
 		gs_matrix_rotaa4f(1.0f, 0.0f, 0.0f, RAD(context->rotation.x));
 		gs_matrix_rotaa4f(0.0f, 1.0f, 0.0f, RAD(context->rotation.y));
