@@ -1,4 +1,5 @@
 #include "3d-effect.h"
+#include "version.h"
 #include <obs-module.h>
 #include "graphics/math-defs.h"
 #include "graphics/matrix4.h"
@@ -107,6 +108,11 @@ static obs_properties_t *effect_3d_properties(void *data)
 	obs_properties_add_group(ppts, "scale", obs_module_text("Scale"),
 				 OBS_GROUP_NORMAL, scale);
 
+	obs_properties_add_text(
+		ppts, "plugin_info",
+		"<a href=\"\">3D Effect</a> (" PROJECT_VERSION
+		") by <a href=\"https://www.exeldro.com\">Exeldro</a>",
+		OBS_TEXT_INFO);
 	return ppts;
 }
 
