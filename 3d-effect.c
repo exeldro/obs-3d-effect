@@ -110,7 +110,7 @@ static obs_properties_t *effect_3d_properties(void *data)
 
 	obs_properties_add_text(
 		ppts, "plugin_info",
-		"<a href=\"\">3D Effect</a> (" PROJECT_VERSION
+		"<a href=\"https://obsproject.com/forum/resources/3d-effect.1692/\">3D Effect</a> (" PROJECT_VERSION
 		") by <a href=\"https://www.exeldro.com\">Exeldro</a>",
 		OBS_TEXT_INFO);
 	return ppts;
@@ -127,11 +127,9 @@ get_tech_name_and_multiplier(enum gs_color_space current_space,
 	switch (source_space) {
 	case GS_CS_SRGB:
 	case GS_CS_SRGB_16F:
-		switch (current_space) {
-		case GS_CS_709_SCRGB:
+		if (current_space == GS_CS_709_SCRGB) {
 			tech_name = "DrawMultiply";
 			*multiplier = obs_get_video_sdr_white_level() / 80.0f;
-		default:;
 		}
 		break;
 	case GS_CS_709_EXTENDED:
@@ -143,7 +141,9 @@ get_tech_name_and_multiplier(enum gs_color_space current_space,
 		case GS_CS_709_SCRGB:
 			tech_name = "DrawMultiply";
 			*multiplier = obs_get_video_sdr_white_level() / 80.0f;
-		default:;
+			break;
+		default:
+			break;
 		}
 		break;
 	case GS_CS_709_SCRGB:
@@ -156,7 +156,9 @@ get_tech_name_and_multiplier(enum gs_color_space current_space,
 		case GS_CS_709_EXTENDED:
 			tech_name = "DrawMultiply";
 			*multiplier = 80.0f / obs_get_video_sdr_white_level();
-		default:;
+			break;
+		default:
+			break;
 		}
 	}
 
@@ -174,6 +176,10 @@ void effect_3d_draw_frame(struct effect_3d *context, uint32_t w, uint32_t h)
 	gs_texture_t *tex = gs_texrender_get_texture(context->render);
 	if (!tex)
 		return;
+
+	gs_blend_state_push();
+	gs_blend_function(GS_BLEND_ONE, GS_BLEND_INVSRCALPHA);
+
 	const bool previous = gs_framebuffer_srgb_enabled();
 	gs_enable_framebuffer_srgb(true);
 
@@ -186,6 +192,7 @@ void effect_3d_draw_frame(struct effect_3d *context, uint32_t w, uint32_t h)
 		gs_draw_sprite(tex, 0, w, h);
 
 	gs_enable_framebuffer_srgb(previous);
+	gs_blend_state_pop();
 }
 
 void effect_3d_video_render(void *data, gs_effect_t *eff)
@@ -194,8 +201,13 @@ void effect_3d_video_render(void *data, gs_effect_t *eff)
 	struct effect_3d *context = data;
 
 	obs_source_t *target = obs_filter_get_target(context->source);
+	obs_source_t *parent = obs_filter_get_parent(context->source);
 	uint32_t base_width = obs_source_get_base_width(target);
 	uint32_t base_height = obs_source_get_base_height(target);
+	if (!base_width || !base_height || !target || !parent) {
+		obs_source_skip_video_filter(context->source);
+		return;
+	}
 
 	if (context->processed_frame) {
 		effect_3d_draw_frame(context, base_width, base_height);
@@ -225,6 +237,9 @@ void effect_3d_video_render(void *data, gs_effect_t *eff)
 						base_height, space)) {
 		const float w = (float)base_width;
 		const float h = (float)base_height;
+		uint32_t parent_flags = obs_source_get_output_flags(target);
+		bool custom_draw = (parent_flags & OBS_SOURCE_CUSTOM_DRAW) != 0;
+		bool async = (parent_flags & OBS_SOURCE_ASYNC) != 0;
 		struct vec4 clear_color;
 
 		vec4_zero(&clear_color);
@@ -244,7 +259,10 @@ void effect_3d_video_render(void *data, gs_effect_t *eff)
 		gs_matrix_scale3f(w / h, 1.0f, 1.0f);
 		gs_matrix_translate3f(-1.0f, -1.0f, 0.0f);
 		gs_matrix_scale3f(2.0f / w, 2.0f / h, 1.0f);
-		obs_source_skip_video_filter(context->source);
+		if (target == parent && !custom_draw && !async)
+			obs_source_default_render(target);
+		else
+			obs_source_video_render(target);
 		gs_texrender_end(context->render);
 		context->space = space;
 	}
@@ -269,6 +287,28 @@ void effect_3d_defaults(obs_data_t *settings)
 	obs_data_set_default_double(settings, "scale_y", 100.0);
 }
 
+enum gs_color_space
+effect_3d_color_space(void *data, size_t count,
+		      const enum gs_color_space *preferred_spaces)
+{
+	struct effect_3d *context = data;
+	obs_source_t *target = obs_filter_get_target(context->source);
+	obs_source_t *parent = obs_filter_get_parent(context->source);
+
+	if (!target || !parent) {
+		return (count > 0) ? preferred_spaces[0] : GS_CS_SRGB;
+	}
+
+	enum gs_color_space space = context->space;
+	for (size_t i = 0; i < count; ++i) {
+		space = preferred_spaces[i];
+		if (space == context->space)
+			break;
+	}
+
+	return space;
+}
+
 OBS_DECLARE_MODULE()
 OBS_MODULE_AUTHOR("Exeldro");
 OBS_MODULE_USE_DEFAULT_LOCALE("3d-effect", "en-US")
@@ -285,7 +325,7 @@ MODULE_EXPORT const char *obs_module_name(void)
 struct obs_source_info effect_3d_info = {
 	.id = "3d_effect_filter",
 	.type = OBS_SOURCE_TYPE_FILTER,
-	.output_flags = OBS_SOURCE_VIDEO,
+	.output_flags = OBS_SOURCE_VIDEO | OBS_SOURCE_SRGB,
 	.get_name = effect_3d_get_name,
 	.create = effect_3d_create,
 	.destroy = effect_3d_destroy,
@@ -295,7 +335,7 @@ struct obs_source_info effect_3d_info = {
 	.video_tick = effect_3d_video_tick,
 	.update = effect_3d_update,
 	.load = effect_3d_update,
-
+	.video_get_color_space = effect_3d_color_space,
 };
 
 bool obs_module_load(void)

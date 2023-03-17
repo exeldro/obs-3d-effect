@@ -6,7 +6,7 @@ else()
   cmake_minimum_required(VERSION 3.18)
 endif()
 
-project(3d-effect VERSION 0.0.1)
+project(3d-effect VERSION 0.0.2)
 set(PROJECT_FULL_NAME "3D Effect")
 
 # Set new UUIDs when you start to create a new plugin.
