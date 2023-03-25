@@ -2,6 +2,10 @@
 
 Plugin for OBS Studio adding 3D effect filter
 
+# Download
+
+https://obsproject.com/forum/resources/3d-effect.1692/
+
 # Build
 1. In-tree build
     - Build OBS Studio: https://obsproject.com/wiki/Install-Instructions
