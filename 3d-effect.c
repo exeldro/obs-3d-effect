@@ -52,6 +52,11 @@ static void *effect_3d_create(obs_data_t *settings, obs_source_t *source)
 static void effect_3d_destroy(void *data)
 {
 	struct effect_3d *context = data;
+	if (context->render) {
+		obs_enter_graphics();
+		gs_texrender_destroy(context->render);
+		obs_leave_graphics();
+	}
 	bfree(context);
 }
 
