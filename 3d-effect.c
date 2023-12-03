@@ -4,8 +4,12 @@
 #include "graphics/math-defs.h"
 #include "graphics/matrix4.h"
 
+#define MODE_PERSPECTIVE 0
+#define MODE_ORTHOGRAPHIC 1
+
 struct effect_3d {
 	obs_source_t *source;
+	int mode;
 	float fov;
 	struct vec3 position;
 	struct vec3 rotation;
@@ -26,6 +30,7 @@ static const char *effect_3d_get_name(void *type_data)
 void effect_3d_update(void *data, obs_data_t *settings)
 {
 	struct effect_3d *context = data;
+	context->mode = (int)obs_data_get_int(settings, "mode");
 	context->fov = (float)obs_data_get_double(settings, "fov");
 	context->rotation.x = (float)obs_data_get_double(settings, "rot_x");
 	context->rotation.y = (float)obs_data_get_double(settings, "rot_y");
@@ -65,7 +70,16 @@ static obs_properties_t *effect_3d_properties(void *data)
 	UNUSED_PARAMETER(data);
 	obs_properties_t *ppts = obs_properties_create();
 
-	obs_property_t *p = obs_properties_add_float_slider(
+	obs_property_t *p = obs_properties_add_list(ppts, "mode",
+						    obs_module_text("Mode"),
+						    OBS_COMBO_TYPE_LIST,
+						    OBS_COMBO_FORMAT_INT);
+	obs_property_list_add_int(p, obs_module_text("Perspective"),
+				  MODE_PERSPECTIVE);
+	obs_property_list_add_int(p, obs_module_text("Orthographic"),
+				  MODE_ORTHOGRAPHIC);
+
+	p = obs_properties_add_float_slider(
 		ppts, "fov", obs_module_text("FieldOfView"), 0.1, 180.0, 0.01);
 
 	obs_properties_t *rot = obs_properties_create();
@@ -249,11 +263,19 @@ void effect_3d_video_render(void *data, gs_effect_t *eff)
 
 		vec4_zero(&clear_color);
 		gs_clear(GS_CLEAR_COLOR, &clear_color, 0.0f, 0);
-		gs_perspective(context->fov, w / h, 1.0f / (float)(1 << 22),
-			       (float)(1 << 22));
-		gs_matrix_translate3f(0.0f, 0.0f, -1.0f);
-		gs_matrix_scale3f(w / h, 1.0f, 1.0f);
-		gs_matrix_scale3f(context->scale.x, context->scale.y, 1.0f);
+		if (context->mode == MODE_ORTHOGRAPHIC) {
+			gs_ortho(-1., 1., -1., 1., -(float)(1 << 22),
+				 (float)(1 << 22));
+		} else {
+			gs_perspective(context->fov, w / h,
+				       1.0f / (float)(1 << 22),
+				       (float)(1 << 22));
+
+			gs_matrix_translate3f(0.0f, 0.0f, -1.0f);
+			gs_matrix_scale3f(w / h, 1.0f, 1.0f);
+			gs_matrix_scale3f(context->scale.x, context->scale.y,
+					  1.0f);
+		}
 		gs_matrix_translate3f(context->position.x / w * 2.0f,
 				      context->position.y / h * 2.0f,
 				      context->position.z / (w + h));
