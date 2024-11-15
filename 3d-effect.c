@@ -40,10 +40,8 @@ void effect_3d_update(void *data, obs_data_t *settings)
 	context->position.y = (float)obs_data_get_double(settings, "pos_y");
 	context->position.z = (float)obs_data_get_double(settings, "pos_z");
 
-	context->scale.x =
-		(float)obs_data_get_double(settings, "scale_x") / 100.0f;
-	context->scale.y =
-		(float)obs_data_get_double(settings, "scale_y") / 100.0f;
+	context->scale.x = (float)obs_data_get_double(settings, "scale_x") / 100.0f;
+	context->scale.y = (float)obs_data_get_double(settings, "scale_y") / 100.0f;
 }
 
 static void *effect_3d_create(obs_data_t *settings, obs_source_t *source)
@@ -70,75 +68,54 @@ static obs_properties_t *effect_3d_properties(void *data)
 	UNUSED_PARAMETER(data);
 	obs_properties_t *ppts = obs_properties_create();
 
-	obs_property_t *p = obs_properties_add_list(ppts, "mode",
-						    obs_module_text("Mode"),
-						    OBS_COMBO_TYPE_LIST,
-						    OBS_COMBO_FORMAT_INT);
-	obs_property_list_add_int(p, obs_module_text("Perspective"),
-				  MODE_PERSPECTIVE);
-	obs_property_list_add_int(p, obs_module_text("Orthographic"),
-				  MODE_ORTHOGRAPHIC);
+	obs_property_t *p =
+		obs_properties_add_list(ppts, "mode", obs_module_text("Mode"), OBS_COMBO_TYPE_LIST, OBS_COMBO_FORMAT_INT);
+	obs_property_list_add_int(p, obs_module_text("Perspective"), MODE_PERSPECTIVE);
+	obs_property_list_add_int(p, obs_module_text("Orthographic"), MODE_ORTHOGRAPHIC);
 
-	p = obs_properties_add_float_slider(
-		ppts, "fov", obs_module_text("FieldOfView"), 0.1, 180.0, 0.01);
+	p = obs_properties_add_float_slider(ppts, "fov", obs_module_text("FieldOfView"), 0.1, 180.0, 0.01);
 
 	obs_properties_t *rot = obs_properties_create();
 
-	p = obs_properties_add_float_slider(
-		rot, "rot_x", obs_module_text("RotX"), -180.0, 180.0, 0.01);
+	p = obs_properties_add_float_slider(rot, "rot_x", obs_module_text("RotX"), -180.0, 180.0, 0.01);
 	obs_property_float_set_suffix(p, "° Deg");
 
-	p = obs_properties_add_float_slider(
-		rot, "rot_y", obs_module_text("RotY"), -180.0, 180.0, 0.01);
+	p = obs_properties_add_float_slider(rot, "rot_y", obs_module_text("RotY"), -180.0, 180.0, 0.01);
 	obs_property_float_set_suffix(p, "° Deg");
 
-	p = obs_properties_add_float_slider(
-		rot, "rot_z", obs_module_text("RotZ"), -180.0, 180.0, 0.01);
+	p = obs_properties_add_float_slider(rot, "rot_z", obs_module_text("RotZ"), -180.0, 180.0, 0.01);
 	obs_property_float_set_suffix(p, "° Deg");
 
-	obs_properties_add_group(ppts, "rot", obs_module_text("Rotation"),
-				 OBS_GROUP_NORMAL, rot);
+	obs_properties_add_group(ppts, "rot", obs_module_text("Rotation"), OBS_GROUP_NORMAL, rot);
 
 	obs_properties_t *pos = obs_properties_create();
-	p = obs_properties_add_float(pos, "pos_x", obs_module_text("PosX"),
-				     -100000.0, 100000.0, 1.0);
+	p = obs_properties_add_float(pos, "pos_x", obs_module_text("PosX"), -100000.0, 100000.0, 1.0);
 	obs_property_float_set_suffix(p, " px");
-	p = obs_properties_add_float(pos, "pos_y", obs_module_text("PosY"),
-				     -100000.0, 100000.0, 1.0);
+	p = obs_properties_add_float(pos, "pos_y", obs_module_text("PosY"), -100000.0, 100000.0, 1.0);
 	obs_property_float_set_suffix(p, " px");
-	p = obs_properties_add_float(pos, "pos_z", obs_module_text("PosZ"),
-				     -100000.0, 100000.0, 1.0);
+	p = obs_properties_add_float(pos, "pos_z", obs_module_text("PosZ"), -100000.0, 100000.0, 1.0);
 	obs_property_float_set_suffix(p, " px");
 
-	obs_properties_add_group(ppts, "pos", obs_module_text("Position"),
-				 OBS_GROUP_NORMAL, pos);
+	obs_properties_add_group(ppts, "pos", obs_module_text("Position"), OBS_GROUP_NORMAL, pos);
 
 	obs_properties_t *scale = obs_properties_create();
 
-	p = obs_properties_add_float(scale, "scale_x",
-				     obs_module_text("ScaleX"), 0.0, 10000.0,
-				     1.0f);
+	p = obs_properties_add_float(scale, "scale_x", obs_module_text("ScaleX"), 0.0, 10000.0, 1.0f);
 	obs_property_float_set_suffix(p, "%");
-	p = obs_properties_add_float(scale, "scale_y",
-				     obs_module_text("ScaleY"), 0.0, 10000.0,
-				     1.0f);
+	p = obs_properties_add_float(scale, "scale_y", obs_module_text("ScaleY"), 0.0, 10000.0, 1.0f);
 	obs_property_float_set_suffix(p, "%");
 
-	obs_properties_add_group(ppts, "scale", obs_module_text("Scale"),
-				 OBS_GROUP_NORMAL, scale);
+	obs_properties_add_group(ppts, "scale", obs_module_text("Scale"), OBS_GROUP_NORMAL, scale);
 
-	obs_properties_add_text(
-		ppts, "plugin_info",
-		"<a href=\"https://obsproject.com/forum/resources/3d-effect.1692/\">3D Effect</a> (" PROJECT_VERSION
-		") by <a href=\"https://www.exeldro.com\">Exeldro</a>",
-		OBS_TEXT_INFO);
+	obs_properties_add_text(ppts, "plugin_info",
+				"<a href=\"https://obsproject.com/forum/resources/3d-effect.1692/\">3D Effect</a> (" PROJECT_VERSION
+				") by <a href=\"https://www.exeldro.com\">Exeldro</a>",
+				OBS_TEXT_INFO);
 	return ppts;
 }
 
-static const char *
-get_tech_name_and_multiplier(enum gs_color_space current_space,
-			     enum gs_color_space source_space,
-			     float *multiplier)
+static const char *get_tech_name_and_multiplier(enum gs_color_space current_space, enum gs_color_space source_space,
+						float *multiplier)
 {
 	const char *tech_name = "Draw";
 	*multiplier = 1.f;
@@ -188,8 +165,7 @@ void effect_3d_draw_frame(struct effect_3d *context, uint32_t w, uint32_t h)
 {
 	const enum gs_color_space current_space = gs_get_color_space();
 	float multiplier;
-	const char *technique = get_tech_name_and_multiplier(
-		current_space, context->space, &multiplier);
+	const char *technique = get_tech_name_and_multiplier(current_space, context->space, &multiplier);
 
 	gs_effect_t *effect = obs_get_base_effect(OBS_EFFECT_DEFAULT);
 	gs_texture_t *tex = gs_texrender_get_texture(context->render);
@@ -202,10 +178,8 @@ void effect_3d_draw_frame(struct effect_3d *context, uint32_t w, uint32_t h)
 	const bool previous = gs_framebuffer_srgb_enabled();
 	gs_enable_framebuffer_srgb(true);
 
-	gs_effect_set_texture_srgb(gs_effect_get_param_by_name(effect, "image"),
-				   tex);
-	gs_effect_set_float(gs_effect_get_param_by_name(effect, "multiplier"),
-			    multiplier);
+	gs_effect_set_texture_srgb(gs_effect_get_param_by_name(effect, "image"), tex);
+	gs_effect_set_float(gs_effect_get_param_by_name(effect, "multiplier"), multiplier);
 
 	while (gs_effect_loop(effect, technique))
 		gs_draw_sprite(tex, 0, w, h);
@@ -237,47 +211,41 @@ void effect_3d_video_render(void *data, gs_effect_t *eff)
 		GS_CS_SRGB_16F,
 		GS_CS_709_EXTENDED,
 	};
-	const enum gs_color_space space = obs_source_get_color_space(
-		target, OBS_COUNTOF(preferred_spaces), preferred_spaces);
+	const enum gs_color_space space = obs_source_get_color_space(target, OBS_COUNTOF(preferred_spaces), preferred_spaces);
 	const enum gs_color_format format = gs_get_format_from_space(space);
-	if (!context->render ||
-	    gs_texrender_get_format(context->render) != format) {
+	if (!context->render || gs_texrender_get_format(context->render) != format) {
 		gs_texrender_destroy(context->render);
 		context->render = gs_texrender_create(format, GS_ZS_NONE);
 	} else {
 		gs_texrender_reset(context->render);
 	}
 
-	gs_viewport_push();
-	gs_matrix_push();
-	gs_blend_state_push();
-	gs_blend_function(GS_BLEND_ONE, GS_BLEND_ZERO);
-	if (gs_texrender_begin_with_color_space(context->render, base_width,
-						base_height, space)) {
+	if (obs_source_process_filter_begin_with_color_space(context->source, format, space, OBS_NO_DIRECT_RENDERING) &&
+	    gs_texrender_begin(context->render, base_width, base_height)) {
+		gs_viewport_push();
+		gs_matrix_push();
+		gs_blend_state_push();
+		gs_reset_blend_state();
+		gs_enable_blending(false);
+		gs_blend_function(GS_BLEND_ONE, GS_BLEND_ZERO);
+
 		const float w = (float)base_width;
 		const float h = (float)base_height;
-		uint32_t parent_flags = obs_source_get_output_flags(target);
-		bool custom_draw = (parent_flags & OBS_SOURCE_CUSTOM_DRAW) != 0;
-		bool async = (parent_flags & OBS_SOURCE_ASYNC) != 0;
 		struct vec4 clear_color;
 
 		vec4_zero(&clear_color);
 		gs_clear(GS_CLEAR_COLOR, &clear_color, 0.0f, 0);
 		if (context->mode == MODE_ORTHOGRAPHIC) {
-			gs_ortho(-1., 1., -1., 1., -(float)(1 << 22),
-				 (float)(1 << 22));
+			gs_ortho(-1., 1., -1., 1., -(float)(1 << 22), (float)(1 << 22));
 		} else {
-			gs_perspective(context->fov, w / h,
-				       1.0f / (float)(1 << 22),
-				       (float)(1 << 22));
+			gs_ortho(0.0f, (float)base_width, 0.0f, (float)base_height, -100.0f, 100.0f);
+			gs_perspective(context->fov, w / h, 1.0f / (float)(1 << 22), (float)(1 << 22));
 
 			gs_matrix_translate3f(0.0f, 0.0f, -1.0f);
 			gs_matrix_scale3f(w / h, 1.0f, 1.0f);
-			gs_matrix_scale3f(context->scale.x, context->scale.y,
-					  1.0f);
 		}
-		gs_matrix_translate3f(context->position.x / w * 2.0f,
-				      context->position.y / h * 2.0f,
+		gs_matrix_scale3f(context->scale.x, context->scale.y, 1.0f);
+		gs_matrix_translate3f(context->position.x / w * 2.0f, context->position.y / h * 2.0f,
 				      context->position.z / (w + h));
 		gs_matrix_scale3f(h / w, 1.0f, 1.0f);
 		gs_matrix_rotaa4f(1.0f, 0.0f, 0.0f, RAD(context->rotation.x));
@@ -286,16 +254,16 @@ void effect_3d_video_render(void *data, gs_effect_t *eff)
 		gs_matrix_scale3f(w / h, 1.0f, 1.0f);
 		gs_matrix_translate3f(-1.0f, -1.0f, 0.0f);
 		gs_matrix_scale3f(2.0f / w, 2.0f / h, 1.0f);
-		if (target == parent && !custom_draw && !async)
-			obs_source_default_render(target);
-		else
-			obs_source_video_render(target);
+
+		obs_source_process_filter_tech_end(context->source, obs_get_base_effect(OBS_EFFECT_DEFAULT), base_width,
+						   base_height, "DrawAlphaDivide");
 		gs_texrender_end(context->render);
+		gs_blend_state_pop();
+		gs_matrix_pop();
+		gs_viewport_pop();
 		context->space = space;
 	}
-	gs_blend_state_pop();
-	gs_matrix_pop();
-	gs_viewport_pop();
+
 	context->processed_frame = true;
 	effect_3d_draw_frame(context, base_width, base_height);
 }
@@ -312,28 +280,6 @@ void effect_3d_defaults(obs_data_t *settings)
 	obs_data_set_default_double(settings, "fov", 90.0);
 	obs_data_set_default_double(settings, "scale_x", 100.0);
 	obs_data_set_default_double(settings, "scale_y", 100.0);
-}
-
-enum gs_color_space
-effect_3d_color_space(void *data, size_t count,
-		      const enum gs_color_space *preferred_spaces)
-{
-	struct effect_3d *context = data;
-	obs_source_t *target = obs_filter_get_target(context->source);
-	obs_source_t *parent = obs_filter_get_parent(context->source);
-
-	if (!target || !parent) {
-		return (count > 0) ? preferred_spaces[0] : GS_CS_SRGB;
-	}
-
-	enum gs_color_space space = context->space;
-	for (size_t i = 0; i < count; ++i) {
-		space = preferred_spaces[i];
-		if (space == context->space)
-			break;
-	}
-
-	return space;
 }
 
 OBS_DECLARE_MODULE()
@@ -362,7 +308,6 @@ struct obs_source_info effect_3d_info = {
 	.video_tick = effect_3d_video_tick,
 	.update = effect_3d_update,
 	.load = effect_3d_update,
-	.video_get_color_space = effect_3d_color_space,
 };
 
 bool obs_module_load(void)
