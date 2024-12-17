@@ -173,7 +173,7 @@ void effect_3d_draw_frame(struct effect_3d *context, uint32_t w, uint32_t h)
 		return;
 
 	gs_blend_state_push();
-	gs_blend_function_separate(GS_BLEND_SRCALPHA, GS_BLEND_INVSRCALPHA, GS_BLEND_ONE, GS_BLEND_INVSRCALPHA);
+	gs_blend_function_separate(GS_BLEND_ONE, GS_BLEND_INVSRCALPHA, GS_BLEND_ONE, GS_BLEND_INVSRCALPHA);
 
 	const bool previous = gs_framebuffer_srgb_enabled();
 	gs_enable_framebuffer_srgb(true);
@@ -220,8 +220,7 @@ void effect_3d_video_render(void *data, gs_effect_t *eff)
 		gs_texrender_reset(context->render);
 	}
 
-	if (obs_source_process_filter_begin_with_color_space(context->source, format, space, OBS_NO_DIRECT_RENDERING) &&
-	    gs_texrender_begin(context->render, base_width, base_height)) {
+	if (gs_texrender_begin_with_color_space(context->render, base_width, base_height, space)) {
 		gs_viewport_push();
 		gs_matrix_push();
 		gs_blend_state_push();
@@ -233,6 +232,9 @@ void effect_3d_video_render(void *data, gs_effect_t *eff)
 		const float h = (float)base_height;
 		struct vec4 clear_color;
 
+		uint32_t parent_flags = obs_source_get_output_flags(target);
+		bool custom_draw = (parent_flags & OBS_SOURCE_CUSTOM_DRAW) != 0;
+		bool async = (parent_flags & OBS_SOURCE_ASYNC) != 0;
 		vec4_zero(&clear_color);
 		gs_clear(GS_CLEAR_COLOR, &clear_color, 0.0f, 0);
 		if (context->mode == MODE_ORTHOGRAPHIC) {
@@ -255,12 +257,14 @@ void effect_3d_video_render(void *data, gs_effect_t *eff)
 		gs_matrix_translate3f(-1.0f, -1.0f, 0.0f);
 		gs_matrix_scale3f(2.0f / w, 2.0f / h, 1.0f);
 
-		obs_source_process_filter_tech_end(context->source, obs_get_base_effect(OBS_EFFECT_DEFAULT), base_width,
-						   base_height, "DrawAlphaDivide");
-		gs_texrender_end(context->render);
+		if (target == parent && !custom_draw && !async)
+			obs_source_default_render(target);
+		else
+			obs_source_video_render(target);
 		gs_blend_state_pop();
 		gs_matrix_pop();
 		gs_viewport_pop();
+		gs_texrender_end(context->render);
 		context->space = space;
 	}
 
