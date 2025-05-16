@@ -7,6 +7,8 @@
 #define MODE_PERSPECTIVE 0
 #define MODE_ORTHOGRAPHIC 1
 
+float (*move_get_transition_filter)(obs_source_t *filter_from, obs_source_t **filter_to) = NULL;
+
 struct effect_3d {
 	obs_source_t *source;
 	int mode;
@@ -237,25 +239,84 @@ void effect_3d_video_render(void *data, gs_effect_t *eff)
 		bool async = (parent_flags & OBS_SOURCE_ASYNC) != 0;
 		vec4_zero(&clear_color);
 		gs_clear(GS_CLEAR_COLOR, &clear_color, 0.0f, 0);
-		if (context->mode == MODE_ORTHOGRAPHIC) {
-			gs_ortho(-1., 1., -1., 1., -(float)(1 << 22), (float)(1 << 22));
-		} else {
-			gs_ortho(0.0f, (float)base_width, 0.0f, (float)base_height, -100.0f, 100.0f);
-			gs_perspective(context->fov, w / h, 1.0f / (float)(1 << 22), (float)(1 << 22));
+		float f = 0.0f;
+		obs_source_t *filter_to = NULL;
+		if (move_get_transition_filter)
+			f = move_get_transition_filter(context->source, &filter_to);
+		if (f > 0.0f && filter_to != context->source) {
+			if (filter_to) {
+				// move between filters
+				struct effect_3d *context2 = obs_obj_get_data(filter_to);
+				if (context->mode == MODE_ORTHOGRAPHIC) {
+					gs_ortho(-1., 1., -1., 1., -(float)(1 << 22), (float)(1 << 22));
+				} else {
+					gs_ortho(0.0f, (float)base_width, 0.0f, (float)base_height, -100.0f, 100.0f);
+					gs_perspective(context2->fov * f + context->fov * (1.0f - f), w / h,
+						       1.0f / (float)(1 << 22), (float)(1 << 22));
 
-			gs_matrix_translate3f(0.0f, 0.0f, -1.0f);
+					gs_matrix_translate3f(0.0f, 0.0f, -1.0f);
+					gs_matrix_scale3f(w / h, 1.0f, 1.0f);
+				}
+				gs_matrix_scale3f(context2->scale.x * f + context->scale.x * (1.0f - f),
+						  context2->scale.y * f + context->scale.y * (1.0f - f), 1.0f);
+				gs_matrix_translate3f((context2->position.x * f + context->position.x * (1.0f - f)) / w * 2.0f,
+						      (context2->position.y * f + context->position.y * (1.0f - f)) / h * 2.0f,
+						      (context2->position.z * f + context->position.z * (1.0f - f)) / (w + h));
+				gs_matrix_scale3f(h / w, 1.0f, 1.0f);
+				gs_matrix_rotaa4f(1.0f, 0.0f, 0.0f,
+						  RAD(context2->rotation.x * f + context->rotation.x * (1.0f - f)));
+				gs_matrix_rotaa4f(0.0f, 1.0f, 0.0f,
+						  RAD(context2->rotation.y * f + context->rotation.y * (1.0f - f)));
+				gs_matrix_rotaa4f(0.0f, 0.0f, 1.0f,
+						  RAD(context2->rotation.z * f + context->rotation.z * (1.0f - f)));
+				gs_matrix_scale3f(w / h, 1.0f, 1.0f);
+				gs_matrix_translate3f(-1.0f, -1.0f, 0.0f);
+				gs_matrix_scale3f(2.0f / w, 2.0f / h, 1.0f);
+			} else {
+				// move to zero
+				if (context->mode == MODE_ORTHOGRAPHIC) {
+					gs_ortho(-1., 1., -1., 1., -(float)(1 << 22), (float)(1 << 22));
+				} else {
+					gs_ortho(0.0f, (float)base_width, 0.0f, (float)base_height, -100.0f, 100.0f);
+					gs_perspective(90.0f * f + context->fov * (1.0f - f), w / h, 1.0f / (float)(1 << 22),
+						       (float)(1 << 22));
+
+					gs_matrix_translate3f(0.0f, 0.0f, -1.0f);
+					gs_matrix_scale3f(w / h, 1.0f, 1.0f);
+				}
+				gs_matrix_scale3f(f + context->scale.x * (1.0f - f), f + context->scale.y * (1.0f - f), 1.0f);
+				gs_matrix_translate3f(context->position.x * (1.0f - f) / w * 2.0f,
+						      context->position.y * (1.0f - f) / h * 2.0f,
+						      context->position.z * (1.0f - f) / (w + h));
+				gs_matrix_scale3f(h / w, 1.0f, 1.0f);
+				gs_matrix_rotaa4f(1.0f, 0.0f, 0.0f, RAD(context->rotation.x * (1.0f - f)));
+				gs_matrix_rotaa4f(0.0f, 1.0f, 0.0f, RAD(context->rotation.y * (1.0f - f)));
+				gs_matrix_rotaa4f(0.0f, 0.0f, 1.0f, RAD(context->rotation.z * (1.0f - f)));
+				gs_matrix_scale3f(w / h, 1.0f, 1.0f);
+				gs_matrix_translate3f(-1.0f, -1.0f, 0.0f);
+				gs_matrix_scale3f(2.0f / w, 2.0f / h, 1.0f);
+			}
+		} else {
+			if (context->mode == MODE_ORTHOGRAPHIC) {
+				gs_ortho(-1., 1., -1., 1., -(float)(1 << 22), (float)(1 << 22));
+			} else {
+				gs_ortho(0.0f, (float)base_width, 0.0f, (float)base_height, -100.0f, 100.0f);
+				gs_perspective(context->fov, w / h, 1.0f / (float)(1 << 22), (float)(1 << 22));
+
+				gs_matrix_translate3f(0.0f, 0.0f, -1.0f);
+				gs_matrix_scale3f(w / h, 1.0f, 1.0f);
+			}
+			gs_matrix_scale3f(context->scale.x, context->scale.y, 1.0f);
+			gs_matrix_translate3f(context->position.x / w * 2.0f, context->position.y / h * 2.0f,
+					      context->position.z / (w + h));
+			gs_matrix_scale3f(h / w, 1.0f, 1.0f);
+			gs_matrix_rotaa4f(1.0f, 0.0f, 0.0f, RAD(context->rotation.x));
+			gs_matrix_rotaa4f(0.0f, 1.0f, 0.0f, RAD(context->rotation.y));
+			gs_matrix_rotaa4f(0.0f, 0.0f, 1.0f, RAD(context->rotation.z));
 			gs_matrix_scale3f(w / h, 1.0f, 1.0f);
+			gs_matrix_translate3f(-1.0f, -1.0f, 0.0f);
+			gs_matrix_scale3f(2.0f / w, 2.0f / h, 1.0f);
 		}
-		gs_matrix_scale3f(context->scale.x, context->scale.y, 1.0f);
-		gs_matrix_translate3f(context->position.x / w * 2.0f, context->position.y / h * 2.0f,
-				      context->position.z / (w + h));
-		gs_matrix_scale3f(h / w, 1.0f, 1.0f);
-		gs_matrix_rotaa4f(1.0f, 0.0f, 0.0f, RAD(context->rotation.x));
-		gs_matrix_rotaa4f(0.0f, 1.0f, 0.0f, RAD(context->rotation.y));
-		gs_matrix_rotaa4f(0.0f, 0.0f, 1.0f, RAD(context->rotation.z));
-		gs_matrix_scale3f(w / h, 1.0f, 1.0f);
-		gs_matrix_translate3f(-1.0f, -1.0f, 0.0f);
-		gs_matrix_scale3f(2.0f / w, 2.0f / h, 1.0f);
 
 		if (target == parent && !custom_draw && !async)
 			obs_source_default_render(target);
@@ -319,4 +380,18 @@ bool obs_module_load(void)
 	blog(LOG_INFO, "[3D Effect] loaded version %s", PROJECT_VERSION);
 	obs_register_source(&effect_3d_info);
 	return true;
+}
+
+void obs_module_post_load()
+{
+	if (obs_get_module("move-transition") == NULL)
+		return;
+	proc_handler_t *ph = obs_get_proc_handler();
+	struct calldata cd;
+	calldata_init(&cd);
+	calldata_set_string(&cd, "filter_id", effect_3d_info.id);
+	if (proc_handler_call(ph, "move_get_transition_filter_function", &cd)) {
+		move_get_transition_filter = calldata_ptr(&cd, "callback");
+	}
+	calldata_free(&cd);
 }
