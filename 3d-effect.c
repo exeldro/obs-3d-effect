@@ -204,10 +204,16 @@ void effect_3d_video_render(void *data, gs_effect_t *eff)
 		return;
 	}
 
-	if (context->processed_frame) {
+	float f = 0.0f;
+	obs_source_t *filter_to = NULL;
+	if (move_get_transition_filter)
+		f = move_get_transition_filter(context->source, &filter_to);
+
+	if (f == 0.0f && context->processed_frame) {
 		effect_3d_draw_frame(context, base_width, base_height);
 		return;
 	}
+
 	const enum gs_color_space preferred_spaces[] = {
 		GS_CS_SRGB,
 		GS_CS_SRGB_16F,
@@ -239,10 +245,6 @@ void effect_3d_video_render(void *data, gs_effect_t *eff)
 		bool async = (parent_flags & OBS_SOURCE_ASYNC) != 0;
 		vec4_zero(&clear_color);
 		gs_clear(GS_CLEAR_COLOR, &clear_color, 0.0f, 0);
-		float f = 0.0f;
-		obs_source_t *filter_to = NULL;
-		if (move_get_transition_filter)
-			f = move_get_transition_filter(context->source, &filter_to);
 		if (f > 0.0f && filter_to != context->source) {
 			if (filter_to) {
 				// move between filters
@@ -328,8 +330,8 @@ void effect_3d_video_render(void *data, gs_effect_t *eff)
 		gs_texrender_end(context->render);
 		context->space = space;
 	}
-
-	context->processed_frame = true;
+	if (f == 0.0f)
+		context->processed_frame = true;
 	effect_3d_draw_frame(context, base_width, base_height);
 }
 
