@@ -44,6 +44,9 @@ void effect_3d_update(void *data, obs_data_t *settings)
 
 	context->scale.x = (float)obs_data_get_double(settings, "scale_x") / 100.0f;
 	context->scale.y = (float)obs_data_get_double(settings, "scale_y") / 100.0f;
+
+	context->shear.x = (float)obs_data_get_double(settings, "shear_x") / 100.0f;
+	context->shear.y = (float)obs_data_get_double(settings, "shear_y") / 100.0f;
 }
 
 static void *effect_3d_create(obs_data_t *settings, obs_source_t *source)
@@ -108,6 +111,15 @@ static obs_properties_t *effect_3d_properties(void *data)
 	obs_property_float_set_suffix(p, "%");
 
 	obs_properties_add_group(ppts, "scale", obs_module_text("Scale"), OBS_GROUP_NORMAL, scale);
+
+	obs_properties_t *shear = obs_properties_create();
+
+	p = obs_properties_add_float_slider(shear, "shear_x", obs_module_text("ShearX"), -200.0, 200.0, 0.01);
+	obs_property_float_set_suffix(p, "%");
+	p = obs_properties_add_float_slider(shear, "shear_y", obs_module_text("ShearY"), -200.0, 200.0, 0.01);
+	obs_property_float_set_suffix(p, "%");
+
+	obs_properties_add_group(ppts, "shear", obs_module_text("Shear"), OBS_GROUP_NORMAL, shear);
 
 	obs_properties_add_text(ppts, "plugin_info",
 				"<a href=\"https://obsproject.com/forum/resources/3d-effect.1692/\">3D Effect</a> (" PROJECT_VERSION
@@ -272,6 +284,11 @@ void effect_3d_video_render(void *data, gs_effect_t *eff)
 				gs_matrix_rotaa4f(0.0f, 0.0f, 1.0f,
 						  RAD(context2->rotation.z * f + context->rotation.z * (1.0f - f)));
 				gs_matrix_scale3f(w / h, 1.0f, 1.0f);
+				struct matrix4 shear_matrix;
+				matrix4_identity(&shear_matrix);
+				shear_matrix.y.x = -(context2->shear.x * f + context->shear.x * (1.0f - f));
+				shear_matrix.x.y = context2->shear.y * f + context->shear.y * (1.0f - f);
+				gs_matrix_mul(&shear_matrix);
 				gs_matrix_translate3f(-1.0f, -1.0f, 0.0f);
 				gs_matrix_scale3f(2.0f / w, 2.0f / h, 1.0f);
 			} else {
@@ -295,6 +312,11 @@ void effect_3d_video_render(void *data, gs_effect_t *eff)
 				gs_matrix_rotaa4f(0.0f, 1.0f, 0.0f, RAD(context->rotation.y * (1.0f - f)));
 				gs_matrix_rotaa4f(0.0f, 0.0f, 1.0f, RAD(context->rotation.z * (1.0f - f)));
 				gs_matrix_scale3f(w / h, 1.0f, 1.0f);
+				struct matrix4 shear_matrix2;
+				matrix4_identity(&shear_matrix2);
+				shear_matrix2.y.x = -(context->shear.x * (1.0f - f));
+				shear_matrix2.x.y = context->shear.y * (1.0f - f);
+				gs_matrix_mul(&shear_matrix2);
 				gs_matrix_translate3f(-1.0f, -1.0f, 0.0f);
 				gs_matrix_scale3f(2.0f / w, 2.0f / h, 1.0f);
 			}
@@ -316,6 +338,11 @@ void effect_3d_video_render(void *data, gs_effect_t *eff)
 			gs_matrix_rotaa4f(0.0f, 1.0f, 0.0f, RAD(context->rotation.y));
 			gs_matrix_rotaa4f(0.0f, 0.0f, 1.0f, RAD(context->rotation.z));
 			gs_matrix_scale3f(w / h, 1.0f, 1.0f);
+			struct matrix4 shear_matrix3;
+			matrix4_identity(&shear_matrix3);
+			shear_matrix3.y.x = -context->shear.x;
+			shear_matrix3.x.y = context->shear.y;
+			gs_matrix_mul(&shear_matrix3);
 			gs_matrix_translate3f(-1.0f, -1.0f, 0.0f);
 			gs_matrix_scale3f(2.0f / w, 2.0f / h, 1.0f);
 		}
@@ -347,6 +374,8 @@ void effect_3d_defaults(obs_data_t *settings)
 	obs_data_set_default_double(settings, "fov", 90.0);
 	obs_data_set_default_double(settings, "scale_x", 100.0);
 	obs_data_set_default_double(settings, "scale_y", 100.0);
+	obs_data_set_default_double(settings, "shear_x", 0.0);
+	obs_data_set_default_double(settings, "shear_y", 0.0);
 }
 
 OBS_DECLARE_MODULE()
