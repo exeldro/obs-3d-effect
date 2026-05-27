@@ -146,7 +146,7 @@ jobs:
           path: plugins/${{ env.PLUGIN_NAME }}
       - name: Add plugin to obs cmake
         shell: bash
-        run: echo "add_subdirectory(${{ env.PLUGIN_NAME }})" >> plugins/CMakeLists.txt
+        run: echo "add_subdirectory(${{ env.PLUGIN_NAME }})" > plugins/CMakeLists.txt
       - name: Fetch Git Tags
         run: git fetch --prune --tags --unshallow
       - name: 'Install dependencies'
@@ -209,7 +209,7 @@ jobs:
           path: plugins/${{ env.PLUGIN_NAME}}
       - name: Add plugin to obs cmake
         shell: cmd
-        run: echo add_subdirectory(${{ env.PLUGIN_NAME }}) >> plugins/CMakeLists.txt
+        run: echo add_subdirectory(${{ env.PLUGIN_NAME }}) > plugins/CMakeLists.txt
       - name: Fetch Git Tags
         run: git fetch --prune --tags --unshallow
       - name: 'Install prerequisite: QT'
@@ -288,10 +288,6 @@ jobs:
         with:
           name: '${{ env.FILE_NAME }}'
           path: package/*
-      - name: "Package Installer (Prereqs)"
-        run: |
-          curl "-kL" "https://files.jrsoftware.org/is/6/innosetup-6.0.3.exe" "-f" "--retry" "5" "-o" "inno.exe"
-          .\inno.exe /VERYSILENT /SP- /SUPPRESSMSGBOXES /NORESTART
       - name: "Package Installer (Compile)"
         run: |
           & 'C:\Program Files (x86)\Inno Setup 6\ISCC.exe' /Qp ".\installer.iss"
