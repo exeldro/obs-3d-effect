@@ -1,0 +1,16 @@
+{
+    "display_name": "3D Effect",
+    "id": "62774ed3-1ed8-42c5-9ad9-ce40bf36a392",
+    "version": "0.1.5",
+    "authors": ["Exeldro"],
+    "name": "3-d-effect",
+    "description": "3D effect filter for sources in OBS Studio",
+    "long_description": "Plugin for OBS Studio adding 3D Effect functionality. 3D Effect allows you to add 3D effects to sources in OBS Studio.",
+    "urls": {
+        "repository": "https://github.com/exeldro/obs-3d-effect",
+        "website": "https://obsproject.com/forum/resources/3d-effect.1692/",
+        "support": "https://obsproject.com/forum/threads/3d-effect.165154/"
+    },
+    "has_banner": false,
+    "has_icon": false
+}
